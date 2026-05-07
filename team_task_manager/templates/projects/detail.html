@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+
+{% block title %}{{ project.title }} | Team Task Manager{% endblock %}
+
+{% block content %}
+<section class="page-header mb-4">
+    <div>
+        <p class="eyebrow">Project Board</p>
+        <h1 class="h2 fw-bold mb-2">{{ project.title }}</h1>
+        <p class="text-muted mb-0">{{ project.description }}</p>
+    </div>
+    <div class="d-flex gap-2">
+        {% if current_user.is_admin() %}
+            <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#teamModal">Manage Team</button>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#taskModal">Add Task</button>
+        {% endif %}
+    </div>
+</section>
+
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <p class="text-muted mb-2">Created by</p>
+                <h2 class="h5 fw-bold mb-1">{{ project.creator.full_name }}</h2>
+                <p class="small text-muted mb-0">{{ project.created_at.strftime("%d %b %Y, %I:%M %p") }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <p class="text-muted mb-2">Team members</p>
+                <h2 class="h5 fw-bold mb-3">{{ project.members|length }}</h2>
+                <div class="d-flex flex-wrap gap-2">
+                    {% for member in project.members %}
+                        <span class="badge member-badge">{{ member.full_name }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <p class="text-muted mb-2">Task summary</p>
+                <h2 class="h5 fw-bold mb-1">{{ project.tasks|length }} total tasks</h2>
+                <p class="small text-muted mb-0">
+                    {{ project.tasks | selectattr("status", "equalto", "DONE") | list | length }} completed ·
+                    {{ project.tasks | selectattr("is_overdue") | list | length }} overdue
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="h5 mb-0">Tasks</h2>
+            <span class="badge rounded-pill text-bg-light">{{ project.tasks|length }} items</span>
+        </div>
+
+        {% if project.tasks %}
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Task</th>
+                            <th>Assignee</th>
+                            <th>Due Date</th>
+                            <th>Status</th>
+                            {% if current_user.is_admin() %}
+                                <th class="text-end">Actions</th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for task in project.tasks | sort(attribute='due_date') %}
+                            <tr class="{% if task.is_overdue %}table-danger{% endif %}">
+                                <td>
+                                    <div class="fw-semibold">{{ task.title }}</div>
+                                    <div class="small text-muted">{{ task.description }}</div>
+                                </td>
+                                <td>{{ task.assignee.full_name }}</td>
+                                <td>
+                                    <div>{{ task.due_date.strftime("%d %b %Y") }}</div>
+                                    {% if task.is_overdue %}
+                                        <span class="small text-danger">Needs attention</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if current_user.is_admin() or task.assigned_to == current_user.id %}
+                                        <form method="post" action="{{ url_for('tasks.update_status', task_id=task.id) }}" class="d-flex gap-2 align-items-center" data-status-form>
+                                            <select class="form-select form-select-sm" name="status">
+                                                {% for status in task_statuses %}
+                                                    <option value="{{ status }}" {% if task.status == status %}selected{% endif %}>
+                                                        {{ status.replace('_', ' ') }}
+                                                    </option>
+                                                {% endfor %}
+                                            </select>
+                                            <button type="submit" class="btn btn-sm btn-light">Save</button>
+                                        </form>
+                                    {% else %}
+                                        <span class="badge rounded-pill {% if task.status == 'DONE' %}text-bg-success{% elif task.status == 'IN_PROGRESS' %}text-bg-warning{% else %}text-bg-secondary{% endif %}">
+                                            {{ task.status.replace('_', ' ') }}
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                {% if current_user.is_admin() %}
+                                    <td class="text-end">
+                                        <form method="post" action="{{ url_for('tasks.delete_task', task_id=task.id) }}" data-confirm="Delete this task permanently?">
+                                            <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
+                                        </form>
+                                    </td>
+                                {% endif %}
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <h3 class="h5">No tasks for this project yet</h3>
+                <p class="text-muted mb-0">Add a task to start tracking progress for this project.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if current_user.is_admin() %}
+    <div class="modal fade" id="taskModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header">
+                    <h2 class="modal-title fs-5">Create Task</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="post" action="{{ url_for('tasks.create_task', project_id=project.id) }}">
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="task_title" class="form-label">Task title</label>
+                                <input type="text" class="form-control" id="task_title" name="title" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="assigned_to" class="form-label">Assign to</label>
+                                <select class="form-select" id="assigned_to" name="assigned_to" required>
+                                    <option value="">Choose a team member</option>
+                                    {% for member in project.members | sort(attribute='full_name') %}
+                                        <option value="{{ member.id }}">{{ member.full_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="due_date" class="form-label">Due date</label>
+                                <input type="date" class="form-control" id="due_date" name="due_date" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="status" class="form-label">Initial status</label>
+                                <select class="form-select" id="status" name="status" required>
+                                    {% for status in task_statuses %}
+                                        <option value="{{ status }}">{{ status.replace('_', ' ') }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label for="task_description" class="form-label">Description</label>
+                                <textarea class="form-control" id="task_description" name="description" rows="4" required></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Create Task</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="teamModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header">
+                    <h2 class="modal-title fs-5">Manage Project Team</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="post" action="{{ url_for('projects.update_members', project_id=project.id) }}">
+                    <div class="modal-body">
+                        <label for="team_members" class="form-label">Select members for this project</label>
+                        <select class="form-select" id="team_members" name="member_ids" multiple size="8">
+                            {% for user in users %}
+                                <option value="{{ user.id }}" {% if user in project.members %}selected{% endif %}>
+                                    {{ user.full_name }} ({{ user.role }})
+                                </option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">The project creator stays included automatically.</div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Update Team</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}
