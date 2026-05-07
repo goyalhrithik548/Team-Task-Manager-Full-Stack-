@@ -187,20 +187,18 @@ After running `python seed.py`, you can log in with:
   - One user can be assigned many tasks
   - Users and projects have a many-to-many relationship for team membership
 
-## Interview-Friendly Explanation
+## Deployment
 
-You can explain the app in a simple flow:
+The application can be deployed on Railway with:
+- PostgreSQL database service
+- Environment variables
+- Flask production server
 
-1. `app.py` starts the Flask application.
-2. `team_task_manager/__init__.py` configures Flask, connects SQLAlchemy, registers blueprints, and loads the current session user.
-3. `models.py` defines the three main entities: users, projects, and tasks, plus the team membership relationship.
-4. The route files separate concerns:
-   - `auth.py` handles signup/login/logout
-   - `main.py` handles the dashboard
-   - `projects.py` handles project and team management
-   - `tasks.py` handles task creation and status updates
-   - `api.py` exposes JSON endpoints
-5. Templates render the UI and `static/js/app.js` adds small enhancements like confirmation prompts and auto-submitting task status changes.
+Environment variables required:
+- SECRET_KEY
+- DATABASE_URL
+
+**LIVE_URL** - https://team-task-manager-full-stack-production-12c4.up.railway.app/
 
 ## Notes
 
