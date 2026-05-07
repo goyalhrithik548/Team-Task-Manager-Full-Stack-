@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard | Team Task Manager{% endblock %}
+
+{% block content %}
+<section class="page-header mb-4">
+    <div>
+        <p class="eyebrow">Overview</p>
+        <h1 class="h2 fw-bold mb-2">Task dashboard</h1>
+        <p class="text-muted mb-0">
+            {% if current_user.is_admin() %}
+                Track all projects, assignments, and delivery progress in one place.
+            {% else %}
+                Keep an eye on your assigned tasks, deadlines, and progress.
+            {% endif %}
+        </p>
+    </div>
+    <a href="{{ url_for('projects.project_list') }}" class="btn btn-primary">Open Projects</a>
+</section>
+
+<div class="row g-4 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="card stat-card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <p class="text-muted mb-2">Total Tasks</p>
+                <h2 class="display-6 fw-bold mb-0">{{ total_tasks }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card stat-card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <p class="text-muted mb-2">Completed</p>
+                <h2 class="display-6 fw-bold mb-0 text-success">{{ completed_tasks }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card stat-card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <p class="text-muted mb-2">Pending</p>
+                <h2 class="display-6 fw-bold mb-0 text-warning">{{ pending_tasks }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card stat-card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <p class="text-muted mb-2">Overdue</p>
+                <h2 class="display-6 fw-bold mb-0 text-danger">{{ overdue_tasks }}</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-xl-8">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2 class="h5 mb-0">Recent Tasks</h2>
+                    <span class="badge rounded-pill text-bg-light">{{ recent_tasks|length }} shown</span>
+                </div>
+
+                {% if recent_tasks %}
+                    <div class="table-responsive">
+                        <table class="table align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Task</th>
+                                    <th>Project</th>
+                                    <th>Status</th>
+                                    <th>Due Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for task in recent_tasks %}
+                                    <tr>
+                                        <td>
+                                            <div class="fw-semibold">{{ task.title }}</div>
+                                            <div class="small text-muted">{{ task.assignee.full_name }}</div>
+                                        </td>
+                                        <td>
+                                            <a href="{{ url_for('projects.project_detail', project_id=task.project_id) }}" class="text-decoration-none">
+                                                {{ task.project.title }}
+                                            </a>
+                                        </td>
+                                        <td>
+                                            <span class="badge rounded-pill {% if task.status == 'DONE' %}text-bg-success{% elif task.status == 'IN_PROGRESS' %}text-bg-warning{% else %}text-bg-secondary{% endif %}">
+                                                {{ task.status.replace('_', ' ') }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div>{{ task.due_date.strftime("%d %b %Y") }}</div>
+                                            {% if task.is_overdue %}
+                                                <span class="small text-danger">Overdue</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <h3 class="h5">No tasks yet</h3>
+                        <p class="text-muted mb-0">Once tasks are assigned, they will appear here.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-4">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body">
+                <h2 class="h5 mb-3">Overdue Tasks</h2>
+                {% if overdue_task_list %}
+                    <div class="list-group list-group-flush">
+                        {% for task in overdue_task_list %}
+                            <a href="{{ url_for('projects.project_detail', project_id=task.project_id) }}" class="list-group-item list-group-item-action px-0">
+                                <div class="d-flex justify-content-between align-items-start gap-3">
+                                    <div>
+                                        <div class="fw-semibold">{{ task.title }}</div>
+                                        <div class="small text-muted">{{ task.project.title }}</div>
+                                    </div>
+                                    <span class="small text-danger">{{ task.due_date.strftime("%d %b") }}</span>
+                                </div>
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted mb-0">No overdue tasks right now.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <h2 class="h5 mb-3">Recent Projects</h2>
+                {% if recent_projects %}
+                    <div class="list-group list-group-flush">
+                        {% for project in recent_projects %}
+                            <a href="{{ url_for('projects.project_detail', project_id=project.id) }}" class="list-group-item list-group-item-action px-0">
+                                <div class="fw-semibold">{{ project.title }}</div>
+                                <div class="small text-muted">{{ project.members|length }} team members</div>
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted mb-0">Projects will show up here after creation.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
