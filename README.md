@@ -2,6 +2,8 @@
 
 A beginner-friendly full-stack task management app built with Flask, SQLAlchemy, PostgreSQL, Bootstrap 5, and vanilla JavaScript.
 
+**LIVE_URL** - https://team-task-manager-full-stack-production-12c4.up.railway.app/
+
 ## Features
 
 - Signup, login, and logout using Flask session authentication
@@ -197,8 +199,6 @@ The application can be deployed on Railway with:
 Environment variables required:
 - SECRET_KEY
 - DATABASE_URL
-
-**LIVE_URL** - https://team-task-manager-full-stack-production-12c4.up.railway.app/
 
 ## Notes
 
